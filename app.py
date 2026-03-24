@@ -24,6 +24,10 @@ def generar_datos_completos(n=500):
     vivienda_ant = np.random.choice(['Arriendo', 'Familiar', 'Propia', 'Otra'], n)
     vive_ahi = np.random.choice(['Sí', 'No'], n, p=[0.75, 0.25]) # 25% Inversionistas
     
+    proyectos = np.random.choice(['Altos del Parque', 'Reserva Real', 'Villas de San Juan', 'Edificio Central', 'Torres del Norte'], n)
+    fases_compra = np.random.choice(['Sobre Planos', 'En Construcción', 'Entrega Inmediata'], n)
+    constructoras = np.random.choice(['Constructora Bolívar', 'Amarilo', 'Marval', 'Colpatria', 'Prodesa'], n)
+    
     # --- 2. Cierre Financiero ---
     bancos_list = ['Banco Davivienda', 'Bancolombia', 'Banco de Bogotá', 'BBVA', 'Banco Caja Social']
     bancos = np.random.choice(bancos_list, n)
@@ -73,6 +77,9 @@ def generar_datos_completos(n=500):
 
     df = pd.DataFrame({
         'ID_Cliente': range(1000, 1000 + n),
+        'Nombre_Proyecto': proyectos,
+        'Fase_Compra': fases_compra,
+        'Nombre_Constructora': constructoras,
         'Edad': edades, 'Genero': generos, 'Ocupacion': ocupaciones, 'Contrato': contratos,
         'Vivienda_Anterior': vivienda_ant, 'Vive_Ahi': vive_ahi,
         'Banco': bancos, 'Valor_Vivienda': valor_vivienda, 'Monto_Credito': monto_credito,
@@ -122,10 +129,11 @@ with tabs[0]:
     
     # Filtros
     c1, c2, c3 = st.columns(3)
-    f_edad = c1.slider("Rango de Edad", int(df['Edad'].min()), int(df['Edad'].max()), (25, 50))
-    f_viv = c2.multiselect("Vivienda Anterior", df['Vivienda_Anterior'].unique(), default=df['Vivienda_Anterior'].unique())
+    f_proy = c1.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique())
+    f_fase = c2.multiselect("Fase de Compra", df['Fase_Compra'].unique(), default=df['Fase_Compra'].unique())
+    f_edad = c3.slider("Rango de Edad", int(df['Edad'].min()), int(df['Edad'].max()), (20, 70))
     
-    df_t1 = df[(df['Edad'].between(f_edad[0], f_edad[1])) & (df['Vivienda_Anterior'].isin(f_viv))]
+    df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & (df['Edad'].between(f_edad[0], f_edad[1]))]
 
     # KPIs
     k1, k2, k3 = st.columns(3)
@@ -157,8 +165,12 @@ with tabs[1]:
     st.subheader("💰 Salud Financiera y Estructura de Pagos")
     
     # Filtros
-    banco_sel = st.multiselect("Filtrar Banco", df['Banco'].unique(), default=df['Banco'].unique())
-    df_t2 = df[df['Banco'].isin(banco_sel)]
+    c1, c2, c3 = st.columns(3)
+    f_banco = c1.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t2_banco')
+    f_ing = c2.slider("Rango de Ingresos", int(df['Ingresos'].min()), int(df['Ingresos'].max()), (int(df['Ingresos'].min()), int(df['Ingresos'].max())), format="$%d")
+    f_proy = c3.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique(), key='t2_proy')
+    
+    df_t2 = df[(df['Banco'].isin(f_banco)) & (df['Ingresos'].between(f_ing[0], f_ing[1])) & (df['Nombre_Proyecto'].isin(f_proy))]
 
     # KPIs
     k1, k2, k3 = st.columns(3)
