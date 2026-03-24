@@ -368,7 +368,7 @@ with tabs[5]:
     st.dataframe(df_schema, use_container_width=True)
 
     st.divider()
-    st.subheader("🕸️ Diagrama de Relaciones (ERD)")
+    st.subheader("Diagrama de Relaciones (ERD)")
     st.write("Modelo lógico generado dinámicamente a partir del diccionario de datos.")
     
     graph = graphviz.Digraph()
