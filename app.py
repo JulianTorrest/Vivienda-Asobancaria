@@ -95,7 +95,7 @@ def generar_datos_completos(n=500):
     return df
 
 # --- Interfaz Principal ---
-st.title("🏦 Dashboard Estratégico: Camacol - Superfinanciera")
+st.title("Dashboard Estratégico: Camacol - Superfinanciera")
 st.markdown("Análisis integral del comprador de vivienda, cierre financiero y sostenibilidad.")
 
 # Carga de Datos
@@ -131,7 +131,7 @@ tabs = st.tabs([
 
 # --- TAB 1: PERFIL Y MERCADO ---
 with tabs[0]:
-    st.subheader("👤 Perfil del Comprador y Mercado")
+    st.subheader("Perfil del Comprador y Mercado")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -168,7 +168,7 @@ with tabs[0]:
 
 # --- TAB 2: CIERRE FINANCIERO ---
 with tabs[1]:
-    st.subheader("💰 Salud Financiera y Estructura de Pagos")
+    st.subheader("Salud Financiera y Estructura de Pagos")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -206,7 +206,7 @@ with tabs[1]:
 
 # --- TAB 3: CARGA Y RIESGO ---
 with tabs[2]:
-    st.subheader("⚠️ Análisis de Riesgo y Capacidad de Pago")
+    st.subheader("Análisis de Riesgo y Capacidad de Pago")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -253,7 +253,7 @@ with tabs[2]:
 
 # --- TAB 4: SOSTENIBILIDAD Y OBRA ---
 with tabs[3]:
-    st.subheader("🌱 Sostenibilidad y Mercado Secundario (Remodelación)")
+    st.subheader("Sostenibilidad y Mercado Secundario (Remodelación)")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -295,7 +295,7 @@ with tabs[3]:
 
 # --- TAB 5: EXPERIENCIA ---
 with tabs[4]:
-    st.subheader("⭐ Experiencia del Cliente (NPS)")
+    st.subheader("Experiencia del Cliente (NPS)")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -330,7 +330,7 @@ with tabs[4]:
 
 # --- TAB 6: ESQUEMA TÉCNICO (ERD) ---
 with tabs[5]:
-    st.header("📘 Diccionario de Datos y Reglas ETL")
+    st.header("Diccionario de Datos y Reglas ETL")
     st.markdown("Especificación técnica de campos, formatos y transformaciones requeridas para la ingesta de datos.")
 
     # Definición del Esquema (Data Dictionary)
