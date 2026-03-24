@@ -113,6 +113,12 @@ if uploaded_file:
 
 df = st.session_state['data']
 
+# Validación de columnas nuevas (Corrección para KeyError por caché antigua)
+required_cols = ['Nombre_Proyecto', 'Fase_Compra', 'Nombre_Constructora']
+if not all(col in df.columns for col in required_cols) and not uploaded_file:
+    st.session_state['data'] = generar_datos_completos()
+    df = st.session_state['data']
+
 # Tabs de Navegación
 tabs = st.tabs([
     "1. Perfil y Mercado", 
