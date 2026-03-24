@@ -315,26 +315,27 @@ with tabs[5]:
 
     st.divider()
     st.subheader("🕸️ Diagrama de Relaciones (ERD)")
-    st.write("Visualización conceptual de las entidades principales.")
+    st.write("Modelo lógico generado dinámicamente a partir del diccionario de datos.")
     
     graph = graphviz.Digraph()
     graph.attr(rankdir='LR')
     graph.attr('node', shape='record', style='filled', fillcolor='lightblue')
 
-    # Representamos el DataFrame principal como una tabla central de hechos
-    cols_cliente = ['ID_Cliente', 'Edad', 'Genero', 'Ocupacion', 'Vivienda_Anterior']
-    cols_financiero = ['Banco', 'Valor_Vivienda', 'Monto_Credito', 'Ingresos', 'Cuota']
-    cols_sost = ['Conoce_Verde', 'Certificacion', 'Tipo_Entrega']
-    
-    def make_node(name, columns):
-        cols_str = "|".join([f"<{c}> {c}" for c in columns])
-        return f"{{ {name} | {{ {cols_str} }} }}"
-
-    graph.node('Dim_Cliente', label=make_node('Dim_Cliente', cols_cliente), fillcolor='#ffcccc')
-    graph.node('Fact_Credito', label=make_node('Fact_Credito', cols_financiero), fillcolor='#ccffcc')
-    graph.node('Dim_Sostenibilidad', label=make_node('Dim_Sostenibilidad', cols_sost), fillcolor='#ccccff')
-
-    graph.edge('Dim_Cliente:ID_Cliente', 'Fact_Credito:Banco', label='Solicita')
-    graph.edge('Fact_Credito:Valor_Vivienda', 'Dim_Sostenibilidad:Tipo_Entrega', label='Genera')
+    # Agrupar campos por Categoría para crear las entidades del modelo
+    for categoria in df_schema['Categoría'].unique():
+        campos = df_schema[df_schema['Categoría'] == categoria]['Campo'].tolist()
+        
+        # Crear nodo tipo 'record' con los campos listados verticalmente
+        label_campos = "|".join([f"<{c}> {c}" for c in campos])
+        label = f"{{ {categoria} | {{ {label_campos} }} }}"
+        
+        # Color distintivo para la tabla de Control (Principal/PK)
+        color = '#ffcc80' if categoria == 'Control' else '#e1f5fe'
+        
+        graph.node(categoria, label=label, fillcolor=color)
+        
+        # Establecer relaciones (Modelo Estrella centrado en Control)
+        if categoria != 'Control':
+            graph.edge('Control', categoria)
 
     st.graphviz_chart(graph)
