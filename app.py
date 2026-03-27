@@ -146,10 +146,39 @@ with tabs[0]:
     c1, c2, c3, c4 = st.columns(4)
     f_proy = c1.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique())
     f_fase = c2.multiselect("Fase de Compra", df['Fase_Compra'].unique(), default=df['Fase_Compra'].unique())
-    f_edad = c3.slider("Rango de Edad", int(df['Edad'].min()), int(df['Edad'].max()), (20, 70))
+    
+    # Rangos de edad predefinidos
+    rangos_edad = [
+        "18-24 años",
+        "25-34 años",
+        "35-44 años", 
+        "45-54 años",
+        "55-65 años"
+    ]
+    f_edad = c3.multiselect("Rango de Edad", rangos_edad, default=rangos_edad)
+    
     f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t1_const')
     
-    df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & (df['Edad'].between(f_edad[0], f_edad[1])) & (df['Nombre_Constructora'].isin(f_const))]
+    # Filtrar por rangos de edad seleccionados
+    if f_edad:
+        condiciones_edad = []
+        for rango in f_edad:
+            if rango == "18-24 años":
+                condiciones_edad.append(df['Edad'].between(18, 24))
+            elif rango == "25-34 años":
+                condiciones_edad.append(df['Edad'].between(25, 34))
+            elif rango == "35-44 años":
+                condiciones_edad.append(df['Edad'].between(35, 44))
+            elif rango == "45-54 años":
+                condiciones_edad.append(df['Edad'].between(45, 54))
+            elif rango == "55-65 años":
+                condiciones_edad.append(df['Edad'].between(55, 65))
+        
+        mask_edad = pd.concat(condiciones_edad, axis=1).any(axis=1)
+    else:
+        mask_edad = pd.Series([True] * len(df))
+    
+    df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & mask_edad & (df['Nombre_Constructora'].isin(f_const))]
 
     # KPIs
     k1, k2, k3 = st.columns(3)
