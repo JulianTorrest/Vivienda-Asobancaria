@@ -539,11 +539,18 @@ with tabs[4]:
         st.plotly_chart(fig_mat, use_container_width=True)
     
     with c2:
-        st.markdown("**Pareto: Aspectos Negativos**")
+        st.markdown("**Distribución de Aspectos Negativos (Gráfico de Torta)**")
         df_par = df_t5['Aspecto_Negativo'].value_counts().reset_index()
-        df_par.columns = ['Aspecto', 'Quejas']
-        fig_par = px.bar(df_par, x='Aspecto', y='Quejas')
-        st.plotly_chart(fig_par, use_container_width=True)
+        df_par.columns = ['Aspecto', 'Cantidad']
+        df_par['Porcentaje'] = (df_par['Cantidad'] / len(df_t5) * 100).round(1)
+        
+        fig_pareto_pie = px.pie(df_par, values='Cantidad', names='Aspecto', 
+                                title="Distribución de Quejas y Aspectos Negativos",
+                                hole=0.4)
+        fig_pareto_pie.update_traces(textposition='outside', textinfo='percent+label', 
+                                  textfont_size=10)
+        fig_pareto_pie.update_layout(showlegend=True, legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.01))
+        st.plotly_chart(fig_pareto_pie, use_container_width=True)
         
     with c3:
         st.markdown("**NPS Banco por Entidad (Escala 1-7)**")
@@ -553,14 +560,43 @@ with tabs[4]:
                         title="Recomendación Banco (1-7)", range_x=[1,7])
         fig_nps.update_xaxes(dtick=1)
         st.plotly_chart(fig_nps, use_container_width=True)
+    # Nueva fila: Mapa de Calor de Aspectos Negativos
+    c4, c5 = st.columns(2)
+    with c4:
+        st.markdown("**Mapa de Calor: Aspectos Negativos por Banco**")
+        # Crear matriz de aspectos negativos vs bancos
+        df_heatmap = df_t5.groupby(['Banco', 'Aspecto_Negativo']).size().reset_index(name='Cantidad')
+        df_heatmap_pivot = df_heatmap.pivot(index='Banco', columns='Aspecto_Negativo', values='Cantidad').fillna(0)
         
-    # KPIs adicionales
+        fig_heatmap_neg = px.imshow(df_heatmap_pivot, 
+                                 title="Intensidad de Aspectos Negativos por Banco",
+                                 labels=dict(x="Aspecto Negativo", y="Banco", color="Cantidad"),
+                                 color_continuous_scale='Reds')
+        fig_heatmap_neg.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_heatmap_neg, use_container_width=True)
+        
+    with c5:
+        st.markdown("**Top 3 Aspectos Negativos por Banco**")
+        # Para cada banco, encontrar los 3 aspectos negativos más comunes
+        top_aspects = []
+        for banco in df_t5['Banco'].unique():
+            df_banco = df_t5[df_t5['Banco'] == banco]
+            top_3 = df_banco['Aspecto_Negativo'].value_counts().head(3)
+            for aspecto, count in top_3.items():
+                top_aspects.append({'Banco': banco, 'Aspecto': aspecto, 'Cantidad': count})
+        
+        df_top_aspects = pd.DataFrame(top_aspects)
+        fig_top_bar = px.bar(df_top_aspects, x='Cantidad', y='Aspecto', color='Banco', 
+                           orientation='h', title="Principales Aspectos Negativos por Entidad",
+                           barmode='group')
+        fig_top_bar.update_layout(height=400)
+        st.plotly_chart(fig_top_bar, use_container_width=True)
     k4, k5, k6 = st.columns(3)
     k4.metric("Promedio Ingresos Personales", f"${df_t5['Ingresos_Personales'].mean()/1e6:,.1f} M")
     k5.metric("Promedio Arriendo Previo", f"${df_t5['Arriendo_Previo'].mean()/1e6:.2f} M")
     k6.metric("Promedio Cuota Actual", f"${df_t5['Cuota'].mean()/1e6:.2f} M")
 
-# --- TAB 6: ESQUEMA TÉCNICO (ERD) ---
+# ... (rest of the code remains the same)
 with tabs[5]:
     st.header("Metodología y Diccionario")
     st.markdown("Especificación técnica de campos, formatos y transformaciones requeridas para la ingesta de datos.")
