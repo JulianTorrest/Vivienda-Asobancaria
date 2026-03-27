@@ -147,7 +147,7 @@ with tabs[0]:
     f_proy = c1.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique())
     f_fase = c2.multiselect("Fase de Compra", df['Fase_Compra'].unique(), default=df['Fase_Compra'].unique())
     f_edad = c3.slider("Rango de Edad", int(df['Edad'].min()), int(df['Edad'].max()), (20, 70))
-    f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique())
+    f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t1_const')
     
     df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & (df['Edad'].between(f_edad[0], f_edad[1])) & (df['Nombre_Constructora'].isin(f_const))]
 
@@ -476,7 +476,7 @@ with tabs[4]:
     # Filtros
     c1, c2, c3, c4 = st.columns(4)
     f_banco = c1.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t5_banco')
-    f_const = c2.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique())
+    f_const = c2.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t5_const')
     f_entr = c3.multiselect("Condición Recibida", df['Tipo_Entrega'].unique(), default=df['Tipo_Entrega'].unique(), key='t5_entr')
     f_proy = c4.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique(), key='t5_proy')
     
