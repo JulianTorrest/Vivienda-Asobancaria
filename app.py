@@ -143,9 +143,10 @@ with tabs[0]:
     st.subheader("Análisis de Cliente y Segmentación")
     
     # Filtros
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     f_proy = c1.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique())
     f_fase = c2.multiselect("Fase de Compra", df['Fase_Compra'].unique(), default=df['Fase_Compra'].unique())
+    f_gen = c3.multiselect("Género", df['Genero'].unique(), default=df['Genero'].unique())
     
     # Rangos de edad predefinidos
     rangos_edad = [
@@ -155,9 +156,8 @@ with tabs[0]:
         "45-54 años",
         "55-65 años"
     ]
-    f_edad = c3.multiselect("Rango de Edad", rangos_edad, default=rangos_edad)
-    
-    f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t1_const')
+    f_edad = c4.multiselect("Rango de Edad", rangos_edad, default=rangos_edad)
+    f_const = c5.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t1_const')
     
     # Filtrar por rangos de edad seleccionados
     if f_edad:
@@ -178,7 +178,7 @@ with tabs[0]:
     else:
         mask_edad = pd.Series([True] * len(df))
     
-    df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & mask_edad & (df['Nombre_Constructora'].isin(f_const))]
+    df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & (df['Genero'].isin(f_gen)) & mask_edad & (df['Nombre_Constructora'].isin(f_const))]
 
     # KPIs
     k1, k2, k3 = st.columns(3)
@@ -193,7 +193,7 @@ with tabs[0]:
     with col_g1:
         st.markdown("**Pirámide Poblacional (Género/Edad)**")
         # Simulación de pirámide con plotly bar
-        df_pyr = df_t1.groupby(['Genero', pd.cut(df_t1['Edad'], bins=[20,30,40,50,60,70])]).size().reset_index(name='Count')
+        df_pyr = df_t1.groupby(['Genero', pd.cut(df_t1['Edad'], bins=[18,25,35,45,55,65])]).size().reset_index(name='Count')
         df_pyr['Count'] = np.where(df_pyr['Genero'] == 'Masculino', -df_pyr['Count'], df_pyr['Count'])
         df_pyr['Edad_Str'] = df_pyr['Edad'].astype(str)
         fig_pyr = px.bar(df_pyr, x='Count', y='Edad_Str', color='Genero', orientation='h', 
@@ -201,17 +201,17 @@ with tabs[0]:
         st.plotly_chart(fig_pyr, use_container_width=True)
 
     with col_g2:
-        st.markdown("**Ocupación y Tipo de Contrato**")
-        fig_tree = px.treemap(df_t1, path=['Ocupacion', 'Contrato'], title="Distribución Laboral")
+        st.markdown("**Distribución por Género y Ocupación**")
+        fig_tree = px.treemap(df_t1, path=['Genero', 'Ocupacion'], title="Distribución Laboral por Género")
         st.plotly_chart(fig_tree, use_container_width=True)
         
     with col_g3:
-        st.markdown("**Razón Principal de Compra**")
-        df_razon = df_t1['Razon_Compra'].value_counts().reset_index()
-        df_razon.columns = ['Razón', 'Cantidad']
-        fig_razon = px.bar(df_razon, x='Razón', y='Cantidad', title="Motivos de Compra")
-        fig_razon.update_xaxes(tickangle=45)
-        st.plotly_chart(fig_razon, use_container_width=True)
+        st.markdown("**Razón Principal de Compra por Género**")
+        df_razon_gen = df_t1.groupby(['Genero', 'Razon_Compra']).size().reset_index(name='Cantidad')
+        fig_razon_gen = px.bar(df_razon_gen, x='Razon_Compra', y='Cantidad', color='Genero', 
+                               title="Motivos de Compra por Género", barmode='group')
+        fig_razon_gen.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_razon_gen, use_container_width=True)
 
 # --- TAB 2: CIERRE FINANCIERO ---
 with tabs[1]:
