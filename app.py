@@ -67,6 +67,10 @@ def generar_datos_completos(n=500):
     monto_credito_obra = np.where(usa_credito_obra == 'Sí', gasto_remodelacion * np.random.uniform(0.5, 0.9, n), 0)
     gasto_lamina = np.random.randint(50, 200, n) * 1000  # Gasto por lámina en miles
     
+    # Nuevos campos para financiamiento remodelación
+    tipo_financiamiento = np.random.choice(['Crédito Libre Inversión', 'Ahorros Propios', 'Tarjeta Crédito', 'Prestamo Familiar', 'Mixto'], n, p=[0.3, 0.4, 0.1, 0.05, 0.15])
+    tiempo_remodelacion = np.random.choice(['Inmediato', '1-3 meses', '3-6 meses', '6-12 meses', 'Más de 1 año'], n, p=[0.2, 0.3, 0.25, 0.15, 0.1])
+    
     # --- 5. Experiencia ---
     nps_banco_val = np.random.randint(1, 8, n) # Escala 1-7
     nps_constr_val = np.random.randint(1, 8, n)
@@ -92,6 +96,7 @@ def generar_datos_completos(n=500):
         'Conoce_Verde': conoce_verde, 'Certificacion': certificacion, 'Tipo_Entrega': tipo_entrega,
         'Gasto_Remodelacion': gasto_remodelacion, 'Usa_Credito_Obra': usa_credito_obra, 'Fase_Remodelacion': fase_remodelacion,
         'Monto_Credito_Obra': monto_credito_obra, 'Gasto_Lamina': gasto_lamina,
+        'Tipo_Financiamiento': tipo_financiamiento, 'Tiempo_Remodelacion': tiempo_remodelacion,
         'NPS_Banco': nps_banco_val, 'NPS_Constructora': nps_constr_val,
         'Calidad': calificacion_calidad, 'Precio': calificacion_precio,
         'Aspecto_Negativo': feedback_neg, 'Aspecto_Positivo': feedback_pos
@@ -138,12 +143,13 @@ with tabs[0]:
     st.subheader("Análisis de Cliente y Segmentación")
     
     # Filtros
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     f_proy = c1.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique())
     f_fase = c2.multiselect("Fase de Compra", df['Fase_Compra'].unique(), default=df['Fase_Compra'].unique())
     f_edad = c3.slider("Rango de Edad", int(df['Edad'].min()), int(df['Edad'].max()), (20, 70))
+    f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique())
     
-    df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & (df['Edad'].between(f_edad[0], f_edad[1]))]
+    df_t1 = df[(df['Nombre_Proyecto'].isin(f_proy)) & (df['Fase_Compra'].isin(f_fase)) & (df['Edad'].between(f_edad[0], f_edad[1])) & (df['Nombre_Constructora'].isin(f_const))]
 
     # KPIs
     k1, k2, k3 = st.columns(3)
@@ -183,12 +189,57 @@ with tabs[1]:
     st.subheader("Estructura de Financiación y LTV")
     
     # Filtros
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     f_banco = c1.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t2_banco')
-    f_ing = c2.slider("Rango de Ingresos", int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max()), (int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max())), format="$%d")
-    f_proy = c3.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique(), key='t2_proy')
     
-    df_t2 = df[(df['Banco'].isin(f_banco)) & (df['Ingresos_Totales'].between(f_ing[0], f_ing[1])) & (df['Nombre_Proyecto'].isin(f_proy))]
+    # Rangos de ingresos mensuales predefinidos (Salario mínimo 2026: $1.400.000)
+    rangos_ingresos = [
+        "$1.4M - $2.5M",
+        "$2.5M - $4M", 
+        "$4M - $6M",
+        "$6M - $8M",
+        "$8M - $10M",
+        "$10M - $15M",
+        "$15M - $20M",
+        "$20M - $30M",
+        "$30M - $45M",
+        "$45M - $60M+"
+    ]
+    f_ing = c2.multiselect("Rango de Ingresos Mensuales (COP)", rangos_ingresos, default=rangos_ingresos, key='t2_ing')
+    
+    f_proy = c3.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique(), key='t2_proy')
+    f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t2_const')
+    
+    # Filtrar por rangos de ingresos seleccionados
+    if f_ing:
+        condiciones_ingreso = []
+        for rango in f_ing:
+            if rango == "$1.4M - $2.5M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(1400000, 2500000))
+            elif rango == "$2.5M - $4M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(2500000, 4000000))
+            elif rango == "$4M - $6M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(4000000, 6000000))
+            elif rango == "$6M - $8M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(6000000, 8000000))
+            elif rango == "$8M - $10M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(8000000, 10000000))
+            elif rango == "$10M - $15M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(10000000, 15000000))
+            elif rango == "$15M - $20M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(15000000, 20000000))
+            elif rango == "$20M - $30M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(20000000, 30000000))
+            elif rango == "$30M - $45M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(30000000, 45000000))
+            elif rango == "$45M - $60M+":
+                condiciones_ingreso.append(df['Ingresos_Totales'] >= 45000000)
+        
+        mask_ingreso = pd.concat(condiciones_ingreso, axis=1).any(axis=1)
+    else:
+        mask_ingreso = pd.Series([True] * len(df))
+    
+    df_t2 = df[(df['Banco'].isin(f_banco)) & mask_ingreso & (df['Nombre_Proyecto'].isin(f_proy)) & (df['Nombre_Constructora'].isin(f_const))]
 
     # KPIs
     ltv_prom = (df_t2['Monto_Credito'].sum() / df_t2['Valor_Vivienda'].sum()) * 100
@@ -215,18 +266,105 @@ with tabs[1]:
         st.markdown("**Participación por Banco**")
         fig_bar = px.bar(df_t2['Banco'].value_counts(), orientation='h')
         st.plotly_chart(fig_bar, use_container_width=True)
+        
+    # Nuevo gráfico explicativo de LTV
+    st.divider()
+    st.markdown("**Análisis de LTV (Loan to Value)**")
+    st.markdown("**Fórmula:** LTV = (Monto Crédito / Valor Vivienda) × 100")
+    st.markdown("**Ejemplo:** Si una vivienda vale $200M y el banco presta $140M, el LTV es 70%")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        # Calcular LTV por cliente
+        df_ltv = df_t2.copy()
+        df_ltv['LTV'] = (df_ltv['Monto_Credito'] / df_ltv['Valor_Vivienda']) * 100
+        df_ltv['Riesgo'] = np.where(df_ltv['LTV'] <= 80, 'Bajo Riesgo (≤80%)', 'Alto Riesgo (>80%)')
+        
+        # Gráfico de distribución LTV
+        fig_ltv_dist = px.histogram(df_ltv, x='LTV', nbins=20, color='Riesgo', 
+                                  title="Distribución de LTV por Nivel de Riesgo",
+                                  color_discrete_map={'Bajo Riesgo (≤80%)': 'green', 'Alto Riesgo (>80%)': 'red'})
+        fig_ltv_dist.add_vline(x=80, line_dash="dash", line_color="black", 
+                              annotation_text="Umbral 80%")
+        st.plotly_chart(fig_ltv_dist, use_container_width=True)
+        
+    with c2:
+        # Gráfico de barras de riesgo
+        riesgo_counts = df_ltv['Riesgo'].value_counts().reset_index()
+        riesgo_counts.columns = ['Nivel de Riesgo', 'Cantidad']
+        riesgo_counts['Porcentaje'] = (riesgo_counts['Cantidad'] / len(df_ltv) * 100).round(1)
+        
+        fig_riesgo = px.bar(riesgo_counts, x='Nivel de Riesgo', y='Cantidad', 
+                           color='Nivel de Riesgo',
+                           title="Cartera por Nivel de Riesgo LTV",
+                           color_discrete_map={'Bajo Riesgo (≤80%)': 'green', 'Alto Riesgo (>80%)': 'red'})
+        
+        # Añadir porcentajes como texto
+        fig_riesgo.update_traces(texttemplate='%{y} (%{text}%)', text=riesgo_counts['Porcentaje'])
+        st.plotly_chart(fig_riesgo, use_container_width=True)
+        
+    # Métricas adicionales de LTV
+    k1, k2, k3 = st.columns(3)
+    k1.metric("LTV Promedio", f"{df_ltv['LTV'].mean():.1f}%")
+    k2.metric("LTV Mínimo", f"{df_ltv['LTV'].min():.1f}%")
+    k3.metric("LTV Máximo", f"{df_ltv['LTV'].max():.1f}%")
 
 # --- TAB 3: CARGA Y RIESGO ---
 with tabs[2]:
     st.subheader("Capacidad de Pago y Riesgo Crediticio")
     
     # Filtros
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     f_cont = c1.multiselect("Tipo de Contrato", df['Contrato'].unique(), default=df['Contrato'].unique())
-    f_ing = c2.slider("Rango de Ingresos", int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max()), (int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max())), key='t3_ing', format="$%d")
-    f_banco = c3.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t3_banco')
     
-    df_t3 = df[(df['Contrato'].isin(f_cont)) & (df['Ingresos_Totales'].between(f_ing[0], f_ing[1])) & (df['Banco'].isin(f_banco))]
+    # Rangos de ingresos mensuales predefinidos
+    rangos_ingresos = [
+        "$1.4M - $2.5M",
+        "$2.5M - $4M", 
+        "$4M - $6M",
+        "$6M - $8M",
+        "$8M - $10M",
+        "$10M - $15M",
+        "$15M - $20M",
+        "$20M - $30M",
+        "$30M - $45M",
+        "$45M - $60M+"
+    ]
+    f_ing = c2.multiselect("Rango de Ingresos Mensuales (COP)", rangos_ingresos, default=rangos_ingresos, key='t3_ing')
+    
+    f_banco = c3.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t3_banco')
+    f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t3_const')
+    
+    # Filtrar por rangos de ingresos seleccionados
+    if f_ing:
+        condiciones_ingreso = []
+        for rango in f_ing:
+            if rango == "$1.4M - $2.5M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(1400000, 2500000))
+            elif rango == "$2.5M - $4M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(2500000, 4000000))
+            elif rango == "$4M - $6M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(4000000, 6000000))
+            elif rango == "$6M - $8M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(6000000, 8000000))
+            elif rango == "$8M - $10M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(8000000, 10000000))
+            elif rango == "$10M - $15M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(10000000, 15000000))
+            elif rango == "$15M - $20M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(15000000, 20000000))
+            elif rango == "$20M - $30M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(20000000, 30000000))
+            elif rango == "$30M - $45M":
+                condiciones_ingreso.append(df['Ingresos_Totales'].between(30000000, 45000000))
+            elif rango == "$45M - $60M+":
+                condiciones_ingreso.append(df['Ingresos_Totales'] >= 45000000)
+        
+        mask_ingreso = pd.concat(condiciones_ingreso, axis=1).any(axis=1)
+    else:
+        mask_ingreso = pd.Series([True] * len(df))
+    
+    df_t3 = df[(df['Contrato'].isin(f_cont)) & mask_ingreso & (df['Banco'].isin(f_banco)) & (df['Nombre_Constructora'].isin(f_const))]
 
     # KPIs
     if len(df_t3) == 0:
@@ -268,12 +406,13 @@ with tabs[3]:
     st.subheader("Mercado Secundario y Remodelación")
     
     # Filtros
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     f_entr = c1.multiselect("Condición Entrega", df['Tipo_Entrega'].unique(), default=df['Tipo_Entrega'].unique())
     f_cert = c2.multiselect("Certificación", df['Certificacion'].unique(), default=df['Certificacion'].unique())
     f_proy = c3.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique(), key='t4_proy')
+    f_const = c4.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t4_const')
     
-    df_t4 = df[(df['Tipo_Entrega'].isin(f_entr)) & (df['Certificacion'].isin(f_cert)) & (df['Nombre_Proyecto'].isin(f_proy))]
+    df_t4 = df[(df['Tipo_Entrega'].isin(f_entr)) & (df['Certificacion'].isin(f_cert)) & (df['Nombre_Proyecto'].isin(f_proy)) & (df['Nombre_Constructora'].isin(f_const))]
 
     if len(df_t4) == 0:
         st.warning("No hay datos para los filtros seleccionados.")
@@ -299,49 +438,49 @@ with tabs[3]:
         fig_don = px.pie(df_t4, names='Certificacion', hole=0.4)
         st.plotly_chart(fig_don, use_container_width=True)
     with c2:
-        st.markdown("**Funnel de Remodelación**")
-        df_funnel = df_t4.groupby('Fase_Remodelacion').size().reset_index(name='Count')
-        # Ordenar lógicamente
-        order = {'Planea':1, 'Contrata':2, 'Financia':3, 'Finalizado':4}
-        df_funnel['Order'] = df_funnel['Fase_Remodelacion'].map(order)
-        df_funnel = df_funnel.sort_values('Order')
-        fig_fun = px.funnel(df_funnel, x='Count', y='Fase_Remodelacion')
-        st.plotly_chart(fig_fun, use_container_width=True)
+        st.markdown("**Tipo de Financiamiento Remodelación**")
+        df_finan = df_t4['Tipo_Financiamiento'].value_counts().reset_index()
+        df_finan.columns = ['Financiamiento', 'Cantidad']
+        fig_finan = px.bar(df_finan, x='Financiamiento', y='Cantidad', color='Financiamiento', title="Fuente de Fondos para Remodelar")
+        fig_finan.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_finan, use_container_width=True)
     with c3:
         st.markdown("**Gasto por Tipo de Entrega**")
         fig_box = px.box(df_t4, x='Tipo_Entrega', y='Gasto_Remodelacion')
         st.plotly_chart(fig_box, use_container_width=True)
         
-    # Nueva fila de gráficos para sostenibilidad
-    c4, c5 = st.columns(2)
-    with c4:
-        st.markdown("**¿Usó Crédito para Remodelación?**")
-        df_credito_obra = df_t4['Usa_Credito_Obra'].value_counts().reset_index()
-        df_credito_obra.columns = ['Usó Crédito', 'Cantidad']
-        fig_credito = px.bar(df_credito_obra, x='Usó Crédito', y='Cantidad', color='Usó Crédito')
-        st.plotly_chart(fig_credito, use_container_width=True)
+    # Nueva fila de gráficos para tiempo de remodelación
+    c6, c7 = st.columns(2)
+    with c6:
+        st.markdown("**Tiempo para Remodelación Post-Entrega**")
+        df_tiempo = df_t4['Tiempo_Remodelacion'].value_counts().reset_index()
+        df_tiempo.columns = ['Tiempo', 'Cantidad']
+        # Ordenar lógicamente
+        order_tiempo = {'Inmediato':1, '1-3 meses':2, '3-6 meses':3, '6-12 meses':4, 'Más de 1 año':5}
+        df_tiempo['Order'] = df_tiempo['Tiempo'].map(order_tiempo)
+        df_tiempo = df_tiempo.sort_values('Order')
+        fig_tiempo = px.bar(df_tiempo, x='Tiempo', y='Cantidad', color='Tiempo', title="¿Cuándo empieza la remodelación?")
+        fig_tiempo.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_tiempo, use_container_width=True)
         
-    with c5:
-        st.markdown("**Monto Crédito Obra (quienes usaron)**")
-        df_usaron = df_t4[df_t4['Usa_Credito_Obra'] == 'Sí']
-        if not df_usaron.empty:
-            fig_monto = px.histogram(df_usaron, x='Monto_Credito_Obra', nbins=20, 
-                                  title="Distribución Monto Crédito Obra")
-            st.plotly_chart(fig_monto, use_container_width=True)
-        else:
-            st.info("No hay datos de crédito para obra")
+    with c7:
+        st.markdown("**Relación: Tipo Financiamiento vs Tiempo**")
+        df_rel = df_t4.groupby(['Tipo_Financiamiento', 'Tiempo_Remodelacion']).size().reset_index(name='Count')
+        fig_rel = px.sunburst(df_rel, path=['Tipo_Financiamiento', 'Tiempo_Remodelacion'], values='Count', title="Financiamiento y Tiempo")
+        st.plotly_chart(fig_rel, use_container_width=True)
 
 # --- TAB 5: EXPERIENCIA ---
 with tabs[4]:
     st.subheader("Satisfacción y Retención Cliente")
     
     # Filtros
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     f_banco = c1.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t5_banco')
     f_const = c2.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique())
     f_entr = c3.multiselect("Condición Recibida", df['Tipo_Entrega'].unique(), default=df['Tipo_Entrega'].unique(), key='t5_entr')
+    f_proy = c4.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique(), key='t5_proy')
     
-    df_t5 = df[(df['Banco'].isin(f_banco)) & (df['Nombre_Constructora'].isin(f_const)) & (df['Tipo_Entrega'].isin(f_entr))]
+    df_t5 = df[(df['Banco'].isin(f_banco)) & (df['Nombre_Constructora'].isin(f_const)) & (df['Tipo_Entrega'].isin(f_entr)) & (df['Nombre_Proyecto'].isin(f_proy))]
 
     if len(df_t5) == 0:
         st.warning("No hay datos para los filtros seleccionados.")
