@@ -464,16 +464,56 @@ with tabs[3]:
         st.plotly_chart(fig_tiempo, use_container_width=True)
         
     with c7:
-        st.markdown("**Relación: Tipo Financiamiento vs Tiempo**")
-        df_rel = df_t4.groupby(['Tipo_Financiamiento', 'Tiempo_Remodelacion']).size().reset_index(name='Count')
-        fig_rel = px.sunburst(df_rel, path=['Tipo_Financiamiento', 'Tiempo_Remodelacion'], values='Count', title="Financiamiento y Tiempo")
-        st.plotly_chart(fig_rel, use_container_width=True)
+        st.markdown("**Distribución por Tipo de Financiamiento**")
+        df_finan_counts = df_t4['Tipo_Financiamiento'].value_counts().reset_index()
+        df_finan_counts.columns = ['Financiamiento', 'Cantidad']
+        df_finan_counts['Porcentaje'] = (df_finan_counts['Cantidad'] / len(df_t4) * 100).round(1)
+        
+        fig_finan_pie = px.pie(df_finan_counts, values='Cantidad', names='Financiamiento', 
+                              title="Fuente de Fondos para Remodelar",
+                              hole=0.4)
+        fig_finan_pie.update_traces(textposition='outside', textinfo='percent+label')
+        st.plotly_chart(fig_finan_pie, use_container_width=True)
+    
+    # Tercera fila: Análisis cruzado
+    c8, c9 = st.columns(2)
+    with c8:
+        st.markdown("**Tiempo Promedio por Tipo de Financiamiento**")
+        df_tiempo_finan = df_t4.groupby('Tipo_Financiamiento')['Tiempo_Remodelacion'].apply(
+            lambda x: pd.Categorical(x, categories=['Inmediato', '1-3 meses', '3-6 meses', '6-12 meses', 'Más de 1 año'], ordered=True).value_counts()
+        ).reset_index()
+        df_tiempo_finan.columns = ['Financiamiento', 'Tiempo', 'Cantidad']
+        df_tiempo_finan = df_tiempo_finan.pivot(index='Financiamiento', columns='Tiempo', values='Cantidad').fillna(0)
+        
+        fig_heatmap = px.imshow(df_tiempo_finan, 
+                              title="Tiempo de Remodelación vs Financiamiento",
+                              labels=dict(x="Tiempo", y="Financiamiento", color="Cantidad"),
+                              color_continuous_scale='Viridis')
+        fig_heatmap.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+        
+    with c9:
+        st.markdown("**Top Financiamientos por Tiempo de Ejecución**")
+        # Para cada tiempo, mostrar el financiamiento más común
+        top_finan = []
+        for tiempo in ['Inmediato', '1-3 meses', '3-6 meses', '6-12 meses', 'Más de 1 año']:
+            df_temp = df_t4[df_t4['Tiempo_Remodelacion'] == tiempo]
+            if not df_temp.empty:
+                top = df_temp['Tipo_Financiamiento'].value_counts().index[0]
+                count = df_temp['Tipo_Financiamiento'].value_counts().iloc[0]
+                top_finan.append({'Tiempo': tiempo, 'Financiamiento Principal': top, 'Cantidad': count})
+        
+        df_top = pd.DataFrame(top_finan)
+        fig_top = px.bar(df_top, x='Tiempo', y='Cantidad', color='Financiamiento Principal',
+                       title="Financiamiento Más Común por Tiempo")
+        fig_top.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_top, use_container_width=True)
 
 # --- TAB 5: EXPERIENCIA ---
 with tabs[4]:
     st.subheader("Satisfacción y Retención Cliente")
     
-    # Filtros
+    # ... (rest of the code remains the same)
     c1, c2, c3, c4 = st.columns(4)
     f_banco = c1.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t5_banco')
     f_const = c2.multiselect("Constructora", df['Nombre_Constructora'].unique(), default=df['Nombre_Constructora'].unique(), key='t5_const')
