@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 st.set_page_config(
     page_title="Dashboard Estratégico Camacol - Asobancaria",
     layout="wide",
-    page_icon="📊"
+    page_icon=""
 )
 
 def generar_datos_completos(n=500):
@@ -17,12 +17,13 @@ def generar_datos_completos(n=500):
     np.random.seed(42)
     
     # --- 1. Perfil y Mercado ---
-    edades = np.random.randint(23, 65, n)
+    edades = np.random.randint(18, 65, n)
     generos = np.random.choice(['Femenino', 'Masculino'], n)
     ocupaciones = np.random.choice(['Empleado', 'Independiente', 'Pensionado', 'Empresario'], n, p=[0.6, 0.3, 0.05, 0.05])
     contratos = np.random.choice(['Indefinido', 'Prestación Servicios', 'Obra Labor', 'Termino Fijo'], n)
     vivienda_ant = np.random.choice(['Arriendo', 'Familiar', 'Propia', 'Otra'], n)
     vive_ahi = np.random.choice(['Sí', 'No'], n, p=[0.75, 0.25]) # 25% Inversionistas
+    razon_compra = np.random.choice(['Inversión', 'Vivienda Propia', 'Cambio de Tamaño', 'Ubicación', 'Seguridad'], n, p=[0.2, 0.5, 0.15, 0.1, 0.05])
     
     proyectos = np.random.choice(['Altos del Parque', 'Reserva Real', 'Villas de San Juan', 'Edificio Central', 'Torres del Norte'], n)
     fases_compra = np.random.choice(['Sobre Planos', 'En Construcción', 'Entrega Inmediata'], n)
@@ -47,12 +48,12 @@ def generar_datos_completos(n=500):
     codeudor = np.random.choice(['Sí', 'No'], n, p=[0.4, 0.6])
     
     # --- 3. Carga y Riesgo ---
-    ingresos = np.random.randint(3, 20, n) * 1000000
+    ingresos_personales = np.random.randint(3, 20, n) * 1000000
     # Si hay codeudor, aumentamos ingresos ficticiamente para el cálculo
-    ingresos_unificados = np.where(codeudor == 'Sí', ingresos * 1.6, ingresos)
+    ingresos_unificados = np.where(codeudor == 'Sí', ingresos_personales * 1.6, ingresos_personales)
     
     cuota_mensual = monto_credito * 0.011 # Aprox tasa actual
-    arriendo_previo = np.where(vivienda_ant == 'Arriendo', ingresos * 0.25, 0)
+    arriendo_previo = np.where(vivienda_ant == 'Arriendo', ingresos_personales * 0.25, 0)
     
     intencion_abono = np.random.choice(['Alta', 'Media', 'Baja'], n)
     
@@ -63,6 +64,8 @@ def generar_datos_completos(n=500):
     gasto_remodelacion = np.where(tipo_entrega == 'Obra Gris', valor_vivienda * 0.15, valor_vivienda * 0.05)
     usa_credito_obra = np.random.choice(['Sí', 'No'], n, p=[0.3, 0.7])
     fase_remodelacion = np.random.choice(['Planea', 'Contrata', 'Financia', 'Finalizado'], n)
+    monto_credito_obra = np.where(usa_credito_obra == 'Sí', gasto_remodelacion * np.random.uniform(0.5, 0.9, n), 0)
+    gasto_lamina = np.random.randint(50, 200, n) * 1000  # Gasto por lámina en miles
     
     # --- 5. Experiencia ---
     nps_banco_val = np.random.randint(1, 8, n) # Escala 1-7
@@ -81,13 +84,14 @@ def generar_datos_completos(n=500):
         'Fase_Compra': fases_compra,
         'Nombre_Constructora': constructoras,
         'Edad': edades, 'Genero': generos, 'Ocupacion': ocupaciones, 'Contrato': contratos,
-        'Vivienda_Anterior': vivienda_ant, 'Vive_Ahi': vive_ahi,
+        'Vivienda_Anterior': vivienda_ant, 'Vive_Ahi': vive_ahi, 'Razon_Compra': razon_compra,
         'Banco': bancos, 'Valor_Vivienda': valor_vivienda, 'Monto_Credito': monto_credito,
         'Ahorro': ahorro_previo, 'Subsidio': subsidio, 'Meses_Ahorro': meses_ahorro, 'Codeudor': codeudor,
-        'Ingresos': ingresos_unificados, 'Cuota': cuota_mensual, 'Arriendo_Previo': arriendo_previo,
+        'Ingresos_Personales': ingresos_personales, 'Ingresos_Totales': ingresos_unificados, 'Cuota': cuota_mensual, 'Arriendo_Previo': arriendo_previo,
         'Intencion_Abono': intencion_abono,
         'Conoce_Verde': conoce_verde, 'Certificacion': certificacion, 'Tipo_Entrega': tipo_entrega,
         'Gasto_Remodelacion': gasto_remodelacion, 'Usa_Credito_Obra': usa_credito_obra, 'Fase_Remodelacion': fase_remodelacion,
+        'Monto_Credito_Obra': monto_credito_obra, 'Gasto_Lamina': gasto_lamina,
         'NPS_Banco': nps_banco_val, 'NPS_Constructora': nps_constr_val,
         'Calidad': calificacion_calidad, 'Precio': calificacion_precio,
         'Aspecto_Negativo': feedback_neg, 'Aspecto_Positivo': feedback_pos
@@ -121,17 +125,17 @@ if not all(col in df.columns for col in required_cols) and not uploaded_file:
 
 # Tabs de Navegación
 tabs = st.tabs([
-    "1. Perfil y Mercado", 
-    "2. Cierre Financiero", 
-    "3. Carga y Riesgo", 
-    "4. Sostenibilidad y Obra", 
-    "5. Experiencia (NPS)",
-    "🛠️ Esquema Técnico"
+    "Análisis de Cliente y Segmentación", 
+    "Estructura de Financiación y LTV", 
+    "Capacidad de Pago y Riesgo Crediticio", 
+    "Mercado Secundario y Remodelación", 
+    "Satisfacción y Retención Cliente",
+    "Metodología y Diccionario"
 ])
 
 # --- TAB 1: PERFIL Y MERCADO ---
 with tabs[0]:
-    st.subheader("Perfil del Comprador y Mercado")
+    st.subheader("Análisis de Cliente y Segmentación")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -149,7 +153,7 @@ with tabs[0]:
     k3.metric("NPS Promedio (Constructora)", f"{df_t1['NPS_Constructora'].mean():.1f}/7")
 
     # Gráficos
-    col_g1, col_g2 = st.columns(2)
+    col_g1, col_g2, col_g3 = st.columns(3)
     
     with col_g1:
         st.markdown("**Pirámide Poblacional (Género/Edad)**")
@@ -165,22 +169,30 @@ with tabs[0]:
         st.markdown("**Ocupación y Tipo de Contrato**")
         fig_tree = px.treemap(df_t1, path=['Ocupacion', 'Contrato'], title="Distribución Laboral")
         st.plotly_chart(fig_tree, use_container_width=True)
+        
+    with col_g3:
+        st.markdown("**Razón Principal de Compra**")
+        df_razon = df_t1['Razon_Compra'].value_counts().reset_index()
+        df_razon.columns = ['Razón', 'Cantidad']
+        fig_razon = px.bar(df_razon, x='Razón', y='Cantidad', title="Motivos de Compra")
+        fig_razon.update_xaxes(tickangle=45)
+        st.plotly_chart(fig_razon, use_container_width=True)
 
 # --- TAB 2: CIERRE FINANCIERO ---
 with tabs[1]:
-    st.subheader("Salud Financiera y Estructura de Pagos")
+    st.subheader("Estructura de Financiación y LTV")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
     f_banco = c1.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t2_banco')
-    f_ing = c2.slider("Rango de Ingresos", int(df['Ingresos'].min()), int(df['Ingresos'].max()), (int(df['Ingresos'].min()), int(df['Ingresos'].max())), format="$%d")
+    f_ing = c2.slider("Rango de Ingresos", int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max()), (int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max())), format="$%d")
     f_proy = c3.multiselect("Proyecto", df['Nombre_Proyecto'].unique(), default=df['Nombre_Proyecto'].unique(), key='t2_proy')
     
-    df_t2 = df[(df['Banco'].isin(f_banco)) & (df['Ingresos'].between(f_ing[0], f_ing[1])) & (df['Nombre_Proyecto'].isin(f_proy))]
+    df_t2 = df[(df['Banco'].isin(f_banco)) & (df['Ingresos_Totales'].between(f_ing[0], f_ing[1])) & (df['Nombre_Proyecto'].isin(f_proy))]
 
     # KPIs
-    k1, k2, k3 = st.columns(3)
     ltv_prom = (df_t2['Monto_Credito'].sum() / df_t2['Valor_Vivienda'].sum()) * 100
+    k1, k2, k3 = st.columns(3)
     k1.metric("LTV Promedio (Préstamo/Valor)", f"{ltv_prom:.1f}%")
     k2.metric("Meses Ahorro Promedio", f"{df_t2['Meses_Ahorro'].mean():.1f} meses")
     tasa_unif = (len(df_t2[df_t2['Codeudor']=='Sí']) / len(df_t2)) * 100
@@ -206,22 +218,22 @@ with tabs[1]:
 
 # --- TAB 3: CARGA Y RIESGO ---
 with tabs[2]:
-    st.subheader("Análisis de Riesgo y Capacidad de Pago")
+    st.subheader("Capacidad de Pago y Riesgo Crediticio")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
     f_cont = c1.multiselect("Tipo de Contrato", df['Contrato'].unique(), default=df['Contrato'].unique())
-    f_ing = c2.slider("Rango de Ingresos", int(df['Ingresos'].min()), int(df['Ingresos'].max()), (int(df['Ingresos'].min()), int(df['Ingresos'].max())), key='t3_ing', format="$%d")
+    f_ing = c2.slider("Rango de Ingresos", int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max()), (int(df['Ingresos_Totales'].min()), int(df['Ingresos_Totales'].max())), key='t3_ing', format="$%d")
     f_banco = c3.multiselect("Banco", df['Banco'].unique(), default=df['Banco'].unique(), key='t3_banco')
     
-    df_t3 = df[(df['Contrato'].isin(f_cont)) & (df['Ingresos'].between(f_ing[0], f_ing[1])) & (df['Banco'].isin(f_banco))]
+    df_t3 = df[(df['Contrato'].isin(f_cont)) & (df['Ingresos_Totales'].between(f_ing[0], f_ing[1])) & (df['Banco'].isin(f_banco))]
 
     # KPIs
     if len(df_t3) == 0:
         st.warning("No hay datos para los filtros seleccionados.")
         st.stop()
 
-    ratio_ci = (df_t3['Cuota'].sum() / df_t3['Ingresos'].sum()) * 100
+    ratio_ci = (df_t3['Cuota'].sum() / df_t3['Ingresos_Totales'].sum()) * 100
     k1, k2, k3 = st.columns(3)
     k1.metric("Ratio Cuota/Ingreso (Hogar)", f"{ratio_ci:.1f}%")
     
@@ -236,24 +248,24 @@ with tabs[2]:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**Scatter: Ingresos vs Cuota (Zonas de Riesgo)**")
-        fig_scat = px.scatter(df_t3, x='Ingresos', y='Cuota', color='Intencion_Abono', 
+        fig_scat = px.scatter(df_t3, x='Ingresos_Totales', y='Cuota', color='Intencion_Abono', 
                               size='Monto_Credito', hover_data=['Banco'])
         # Linea de referencia 30% ingreso
-        fig_scat.add_shape(type="line", x0=0, y0=0, x1=df_t3['Ingresos'].max(), y1=df_t3['Ingresos'].max()*0.3,
+        fig_scat.add_shape(type="line", x0=0, y0=0, x1=df_t3['Ingresos_Totales'].max(), y1=df_t3['Ingresos_Totales'].max()*0.3,
                            line=dict(color="Red", width=2, dash="dash"))
         st.plotly_chart(fig_scat, use_container_width=True)
     
     with col2:
         st.markdown("**Brecha: Arriendo Anterior vs Cuota Actual**")
         # Comparativo promedio agrupado por rango de ingreso
-        df_t3['Rango_Ingreso'] = pd.qcut(df_t3['Ingresos'], 4, labels=["Bajo", "Medio-Bajo", "Medio-Alto", "Alto"], duplicates='drop')
+        df_t3['Rango_Ingreso'] = pd.qcut(df_t3['Ingresos_Totales'], 4, labels=["Bajo", "Medio-Bajo", "Medio-Alto", "Alto"], duplicates='drop')
         df_brecha = df_t3[df_t3['Arriendo_Previo']>0].groupby('Rango_Ingreso', observed=True)[['Arriendo_Previo', 'Cuota']].mean().reset_index()
         fig_brecha = px.bar(df_brecha, x='Rango_Ingreso', y=['Arriendo_Previo', 'Cuota'], barmode='group')
         st.plotly_chart(fig_brecha, use_container_width=True)
 
 # --- TAB 4: SOSTENIBILIDAD Y OBRA ---
 with tabs[3]:
-    st.subheader("Sostenibilidad y Mercado Secundario (Remodelación)")
+    st.subheader("Mercado Secundario y Remodelación")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -274,6 +286,13 @@ with tabs[3]:
     uso_cred = (len(df_t4[df_t4['Usa_Credito_Obra']=='Sí'])/len(df_t4))*100
     k3.metric("Ratio Crédito para Obra", f"{uso_cred:.1f}%")
 
+    # KPIs adicionales para sostenibilidad
+    k4, k5, k6 = st.columns(3)
+    k4.metric("Promedio Gasto Lámina", f"${df_t4['Gasto_Lamina'].mean()/1000:,.0f} K")
+    k5.metric("Promedio Crédito Obra", f"${df_t4['Monto_Credito_Obra'].mean()/1e6:.1f} M")
+    cert_edge = (len(df_t4[df_t4['Certificacion']=='EDGE'])/len(df_t4))*100
+    k6.metric("% Certificación EDGE", f"{cert_edge:.1f}%")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**Certificaciones Sostenibles**")
@@ -292,10 +311,29 @@ with tabs[3]:
         st.markdown("**Gasto por Tipo de Entrega**")
         fig_box = px.box(df_t4, x='Tipo_Entrega', y='Gasto_Remodelacion')
         st.plotly_chart(fig_box, use_container_width=True)
+        
+    # Nueva fila de gráficos para sostenibilidad
+    c4, c5 = st.columns(2)
+    with c4:
+        st.markdown("**¿Usó Crédito para Remodelación?**")
+        df_credito_obra = df_t4['Usa_Credito_Obra'].value_counts().reset_index()
+        df_credito_obra.columns = ['Usó Crédito', 'Cantidad']
+        fig_credito = px.bar(df_credito_obra, x='Usó Crédito', y='Cantidad', color='Usó Crédito')
+        st.plotly_chart(fig_credito, use_container_width=True)
+        
+    with c5:
+        st.markdown("**Monto Crédito Obra (quienes usaron)**")
+        df_usaron = df_t4[df_t4['Usa_Credito_Obra'] == 'Sí']
+        if not df_usaron.empty:
+            fig_monto = px.histogram(df_usaron, x='Monto_Credito_Obra', nbins=20, 
+                                  title="Distribución Monto Crédito Obra")
+            st.plotly_chart(fig_monto, use_container_width=True)
+        else:
+            st.info("No hay datos de crédito para obra")
 
 # --- TAB 5: EXPERIENCIA ---
 with tabs[4]:
-    st.subheader("Experiencia del Cliente (NPS)")
+    st.subheader("Satisfacción y Retención Cliente")
     
     # Filtros
     c1, c2, c3 = st.columns(3)
@@ -315,7 +353,7 @@ with tabs[4]:
     gap = df_t5['Calidad'].mean() - df_t5['Precio'].mean()
     k3.metric("Gap Calidad - Precio", f"{gap:+.2f}")
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**Matriz de Valor: Precio vs Calidad**")
         fig_mat = px.density_heatmap(df_t5, x='Precio', y='Calidad', nbinsx=7, nbinsy=7, text_auto=True)
@@ -327,10 +365,25 @@ with tabs[4]:
         df_par.columns = ['Aspecto', 'Quejas']
         fig_par = px.bar(df_par, x='Aspecto', y='Quejas')
         st.plotly_chart(fig_par, use_container_width=True)
+        
+    with c3:
+        st.markdown("**NPS Banco por Entidad (Escala 1-7)**")
+        df_nps_banco = df_t5.groupby('Banco')['NPS_Banco'].mean().reset_index()
+        df_nps_banco = df_nps_banco.sort_values('NPS_Banco', ascending=False)
+        fig_nps = px.bar(df_nps_banco, x='NPS_Banco', y='Banco', orientation='h', 
+                        title="Recomendación Banco (1-7)", range_x=[1,7])
+        fig_nps.update_xaxes(dtick=1)
+        st.plotly_chart(fig_nps, use_container_width=True)
+        
+    # KPIs adicionales
+    k4, k5, k6 = st.columns(3)
+    k4.metric("Promedio Ingresos Personales", f"${df_t5['Ingresos_Personales'].mean()/1e6:,.1f} M")
+    k5.metric("Promedio Arriendo Previo", f"${df_t5['Arriendo_Previo'].mean()/1e6:.2f} M")
+    k6.metric("Promedio Cuota Actual", f"${df_t5['Cuota'].mean()/1e6:.2f} M")
 
 # --- TAB 6: ESQUEMA TÉCNICO (ERD) ---
 with tabs[5]:
-    st.header("Diccionario de Datos y Reglas ETL")
+    st.header("Metodología y Diccionario")
     st.markdown("Especificación técnica de campos, formatos y transformaciones requeridas para la ingesta de datos.")
 
     # Definición del Esquema (Data Dictionary)
